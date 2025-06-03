@@ -9,7 +9,7 @@ const App = () => {
   const [guess, setGuess] = useState('');
   const [result, setResult] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [difficulty, setDifficulty] = useState('medium');
+  const [difficulty, setDifficulty] = useState('easy');
   const [loading, setLoading] = useState(false);
 
   const RAPIDAPI_KEY = 'e74f8ee797msh19e5d70d033f4e5p1af591jsn5ab4a61e0dfd';
@@ -40,11 +40,6 @@ const App = () => {
       });
 
       let cities = res.data.data;
-
-      if (cities.length === 0) {
-        fetchCity();
-        return;
-      }
 
       const chosenCity = cities[Math.floor(Math.random() * cities.length)];
 
@@ -85,8 +80,9 @@ const App = () => {
           onChange={(e) => setDifficulty(e.target.value)}
           disabled={loading}
         >
-          <option value="medium">Medium - Big cities</option>
-          <option value="hard">Hard - All cities</option>
+          <option value="easy">Easy - Big cities</option>
+          <option value="medium">Medium - Bigger cities</option>
+          <option value="hard">Hard - All cities (flag only)</option>
         </select>
       </div>
 
@@ -97,16 +93,28 @@ const App = () => {
             <strong>Population:</strong> {city.population ? city.population.toLocaleString() : 'Unknown'}
           </p>
 
-          <MapContainer
-            center={[city.latitude, city.longitude]}
-            zoom={6}
-            style={{ height: '300px', width: '100%' }}
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <Marker position={[city.latitude, city.longitude]}>
-              <Popup>{city.name}</Popup>
-            </Marker>
-          </MapContainer>
+          {/* Visa flagga */}
+          {city.countryCode && (
+            <img
+              src={`https://flagcdn.com/w160/${city.countryCode.toLowerCase()}.png`}
+              alt={`Flag of ${city.country}`}
+              style={{ width: '160px', height: 'auto', marginBottom: '1rem', borderRadius: '6px', boxShadow: '0 0 8px rgba(0,0,0,0.2)' }}
+            />
+          )}
+
+          {/* Visa karta endast om difficulty är inte hard */}
+          {difficulty !== 'hard' && (
+            <MapContainer
+              center={[city.latitude, city.longitude]}
+              zoom={6}
+              style={{ height: '300px', width: '100%' }}
+            >
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <Marker position={[city.latitude, city.longitude]}>
+                <Popup>{city.name}</Popup>
+              </Marker>
+            </MapContainer>
+          )}
 
           <div className="mt-3">
             <input
@@ -131,18 +139,38 @@ const App = () => {
           {showForm && (
             <div className="mt-4">
               <button
-                className="btn btn-outline-primary fw-bold"
+                className="btn btn-primary fw-bold d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
                 onClick={fetchCity}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  transition: 'background-color 0.3s ease',
+                  borderRadius: '30px',
+                  fontSize: '1.1rem',
+                  transition: 'transform 0.2s ease',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#cce5ff')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '')}
+                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                Next city <span style={{ fontSize: '1.2em' }}>►</span>
+                Next city
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                  className="bi bi-arrow-right-circle"
+                  viewBox="0 0 16 16"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0-1A6 6 0 1 1 8 2a6 6 0 0 1 0 12z"
+                  />
+                  <path
+                    fillRule="evenodd"
+                    d="M8.5 11a.5.5 0 0 1 0-1H10V7.5a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5H8.5z"
+                  />
+                  <path
+                    fillRule="evenodd"
+                    d="M10.354 7.646a.5.5 0 0 0-.708.708L11.293 9.5H7.5a.5.5 0 0 0 0 1h3.793l-1.647 1.646a.5.5 0 0 0 .708.708l2.5-2.5a.5.5 0 0 0 0-.708l-2.5-2.5z"
+                  />
+                </svg>
               </button>
             </div>
           )}
