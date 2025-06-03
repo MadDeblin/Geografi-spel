@@ -23,10 +23,16 @@ const App = () => {
         offset: Math.floor(Math.random() * 1000),
       };
 
-      if (difficulty === 'medium') {
+      if (difficulty === 'easy') {
+        // Easy = Big cities
         params.minPopulation = 500000;
         params.sort = '-population';
+      } else if (difficulty === 'medium') {
+        // Medium = All cities
+        params.limit = 1;
+        params.offset = Math.floor(Math.random() * 10000);
       } else if (difficulty === 'hard') {
+        // Hard = All cities (flag only)
         params.limit = 1;
         params.offset = Math.floor(Math.random() * 10000);
       }
@@ -81,7 +87,7 @@ const App = () => {
           disabled={loading}
         >
           <option value="easy">Easy - Big cities</option>
-          <option value="medium">Medium - Bigger cities</option>
+          <option value="medium">Medium - All cities</option>
           <option value="hard">Hard - All cities (flag only)</option>
         </select>
       </div>
@@ -120,7 +126,7 @@ const App = () => {
             <input
               type="text"
               className="form-control"
-              placeholder="Type the country"
+              placeholder="Type the country name"
               value={guess}
               onChange={(e) => setGuess(e.target.value)}
               disabled={showForm}
@@ -138,6 +144,8 @@ const App = () => {
 
           {showForm && (
             <div className="mt-4">
+              <h5>Personal question</h5>
+              <p>Would you like to live in {city.name}?</p>
               <button
                 className="btn btn-primary fw-bold d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
                 onClick={fetchCity}
