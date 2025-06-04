@@ -15,6 +15,8 @@ const App = () => {
   const [questionCount, setQuestionCount] = useState(0); // Håller koll på antal frågor
   const [gameStarted, setGameStarted] = useState(false); // Styr om startsida visas
   const [countryInfo, setCountryInfo] = useState(null); // Fakta om landet
+  const [clue, setClue] = useState(null); // Håller ledtråd till spelaren
+
 
 
 
@@ -67,6 +69,7 @@ const App = () => {
 
       setCity(chosenCity);
       fetchCountryInfo(chosenCity.countryCode);
+      setClue(null); 
       setResult('');
       setGuess('');
       setShowForm(false);
@@ -89,7 +92,14 @@ const App = () => {
 
     setResult(isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${correctAnswer}`);
     setShowForm(true);
-  };
+  };const handleClue = () => {
+  if (!countryInfo) return;
+
+  // ger clues till splaren
+  const clueText = `Första bokstaven i landets namn: ${countryInfo.name.common.charAt(0)}`;
+  setClue(clueText);
+};
+
 
   if (!gameStarted) {
   return (
@@ -199,7 +209,20 @@ const App = () => {
             </button>
           </div>
 
+
+<div className="d-flex gap-2 mt-2">
+  <button className="btn btn-warning" onClick={handleClue} disabled={showForm}>
+    Get clue
+  </button>
+  <button className="btn btn-danger" onClick={fetchCity}>
+    Skip question
+  </button>
+</div>
+
+
           <p className="mt-3 fs-5">{result}</p>
+          {clue && <p className="mt-2 text-info">{clue}</p>}
+
 
           {showForm && (
             <div className="mt-4">
