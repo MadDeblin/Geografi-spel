@@ -13,38 +13,51 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState(0); // Håller koll på rätt gissningar
   const [questionCount, setQuestionCount] = useState(0); // Håller koll på antal frågor
-  const [gameStarted, setGameStarted] = useState(false); // Styr om startsida visas
+  const [gameStarted, setGameStarted] = useState(false); // Styr om stsartsida visas
   const [countryInfo, setCountryInfo] = useState(null); // Fakta om landet
   const [clue, setClue] = useState(null); // Håller ledtråd till spelaren
+  const [usedClue, setUsedClue] = useState(false); // Om ledtråd används på aktuell fråga
+  const [gameOver, setGameOver] = useState(false); // Om alla frågor är klara
+  
 
 
 
 
   const RAPIDAPI_KEY = 'e74f8ee797msh19e5d70d033f4e5p1af591jsn5ab4a61e0dfd';
 
-  const fetchCity = async () => {
-    try {
-      setLoading(true);
+const [usedCountries, setUsedCountries] = useState([]); // För att hålla koll på använda länder
 
+const fetchCountryInfo = async (countryCode) => {
+  try {
+    const res = await axios.get(`https://restcountries.com/v3.1/alpha/${countryCode}`);
+    setCountryInfo(res.data[0]);
+  } catch (error) {
+    console.error('Error fetching country info:', error);
+    setCountryInfo(null);
+  }
+};
+
+const fetchCity = async () => {
+  try {
+    setLoading(true);
+
+    let attempts = 0;
+    let maxAttempts = 10;
+    let chosenCity = null;
+
+    while (attempts < maxAttempts) {
       let params = {
-        limit: 10,
-        offset: Math.floor(Math.random() * 1000),
+        limit: 1,
       };
 
       if (difficulty === 'easy') {
-        // Easy = Big cities
         params.minPopulation = 500000;
-        params.sort = '-population';
-      } else if (difficulty === 'medium') {
-        // Medium = All cities
-        params.limit = 1;
-        params.offset = Math.floor(Math.random() * 10000);
-      } else if (difficulty === 'hard') {
-        // Hard = All cities (flag only)
-        params.limit = 1;
-        params.offset = Math.floor(Math.random() * 10000);
+        params.offset = Math.floor(Math.random() * 5000);
+        params.sort = 'name';
+      } else if (difficulty === 'medium' || difficulty === 'hard') {
+        params.offset = Math.floor(Math.random() * 20000);
+        params.sort = 'name';
       }
-
 
       const res = await axios.get('https://wft-geo-db.p.rapidapi.com/v1/geo/cities', {
         headers: {
@@ -54,50 +67,82 @@ const App = () => {
         params,
       });
 
-      const fetchCountryInfo = async (countryCode) => {
-  try {
-    const res = await axios.get(`https://restcountries.com/v3.1/alpha/${countryCode}`);
-    setCountryInfo(res.data[0]);
+      const cityCandidate = res.data.data[0];
+
+      // Om vi inte redan använt detta land
+      if (cityCandidate && !usedCountries.includes(cityCandidate.countryCode)) {
+        chosenCity = cityCandidate;
+        break;
+      }
+
+      attempts++;
+    }
+
+    if (!chosenCity) {
+      console.warn("Kunde inte hitta unikt land efter flera försök.");
+      setLoading(false);
+      return;
+    }
+
+    setCity(chosenCity);
+    fetchCountryInfo(chosenCity.countryCode);
+    setResult('');
+    setGuess('');
+    setShowForm(false);
+    setClue(null);
+    setUsedClue(false);
+    setLoading(false);
+
+    // Lägg till landet i listan över använda
+    setUsedCountries(prev => [...prev, chosenCity.countryCode]);
   } catch (error) {
-    console.error('Error fetching country info:', error);
-    setCountryInfo(null);
+    console.error('Error fetching city:', error);
+    setLoading(false);
   }
 };
-      let cities = res.data.data;
 
-      const chosenCity = cities[Math.floor(Math.random() * cities.length)];
 
-      setCity(chosenCity);
-      fetchCountryInfo(chosenCity.countryCode);
-      setClue(null); 
-      setResult('');
-      setGuess('');
-      setShowForm(false);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching city:', error);
-      setLoading(false);
-    }
-  };
+const handleGuess = () => {
+  if (!guess || !countryInfo) return;
 
-  useEffect(() => {
-    fetchCity();
-  }, [difficulty]);
+  const normalizedGuess = guess.trim().toLowerCase();
 
-  const handleGuess = () => {
-    if (!guess) return;
+  // Skapa en lista av möjliga namn att jämföra med
+  const countryNames = [
+    countryInfo.name.common?.toLowerCase(),
+    countryInfo.name.official?.toLowerCase(),
+    ...(countryInfo.altSpellings || []).map(s => s.toLowerCase())
+  ];
 
-    const correctAnswer = city.country;
-    const isCorrect = guess.trim().toLowerCase() === correctAnswer.toLowerCase();
+  const isCorrect = countryNames.some(name => name === normalizedGuess);
 
-    setResult(isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${correctAnswer}`);
-    setShowForm(true);
-  };const handleClue = () => {
+  setResult(isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${countryInfo.name.common}`);
+  setShowForm(true);
+
+  const pointsEarned = isCorrect ? (usedClue ? 1 : 2) : 0;
+  setScore((prev) => prev + pointsEarned);
+  setQuestionCount((prev) => prev + 1);
+
+  if (questionCount + 1 >= 10) {
+    setGameOver(true);
+    saveScore(difficulty, score + pointsEarned);
+  }
+};
+
+
+const saveScore = (level, finalScore) => {
+  const existingScores = JSON.parse(localStorage.getItem('geoScores')) || {};
+  existingScores[level] = finalScore;
+  localStorage.setItem('geoScores', JSON.stringify(existingScores));
+};
+
+  const handleClue = () => {
   if (!countryInfo) return;
 
   // ger clues till splaren
   const clueText = `Första bokstaven i landets namn: ${countryInfo.name.common.charAt(0)}`;
   setClue(clueText);
+  setUsedClue(true); 
 };
 
 
@@ -105,6 +150,19 @@ const App = () => {
   return (
     <div className="container py-5 text-center">
       <h1 className="display-4">🌍 Geografi-spelet</h1>
+      {localStorage.getItem('geoScores') && (
+  <div className="alert alert-info mt-2">
+    <h5>Dina tidigare resultat:</h5>
+    <ul className="mb-0 text-start">
+      {Object.entries(JSON.parse(localStorage.getItem('geoScores'))).map(([level, points]) => (
+        <li key={level}>
+          {level.charAt(0).toUpperCase() + level.slice(1)}: {points} poäng
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
       <p className="lead mt-3 mb-4">
         Testa dina geografikunskaper – gissa land, se flaggor, kartor och samla poäng!
       </p>
@@ -121,9 +179,53 @@ const App = () => {
   );
 }
 
+if (gameOver) {
+  return (
+    <div className="container py-5 text-center">
+      <h1>🎉 Spelet är slut!</h1>
+      <p className="lead">Du fick <strong>{score}</strong> poäng av 20 möjliga på <strong>{difficulty}</strong>-nivån.</p>
+
+      {/* Visa gamla resultat */}
+      {localStorage.getItem('geoScores') && (
+        <div className="alert alert-info mt-3">
+          <h5>Dina tidigare resultat:</h5>
+          <ul className="mb-0 text-start d-inline-block text-start">
+            {Object.entries(JSON.parse(localStorage.getItem('geoScores'))).map(([level, points]) => (
+              <li key={level}>
+                {level.charAt(0).toUpperCase() + level.slice(1)}: {points} poäng
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Spela igen */}
+      <button
+        className="btn btn-success mt-4 me-2"
+        onClick={() => {
+          setGameStarted(false);
+          setScore(0);
+          setQuestionCount(0);
+          setGameOver(false);
+          setUsedClue(false);
+          setCity(null);
+          setResult('');
+          setClue(null);
+        }}
+      >
+        🔁 Till startsidan
+      </button>
+    </div>
+  );
+}
+
+
   return (
     <div className="container py-4">
       <h1 className="mb-4">Guess the Country!</h1>
+      <p className="text-muted mb-3">
+  Fråga {questionCount + 1} av 10 | Poäng: {score}
+</p>
 
       <div className="mb-3 w-auto">
         <label className="form-label">Difficulty:</label>
