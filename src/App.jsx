@@ -11,6 +11,10 @@ const App = () => {
   const [showForm, setShowForm] = useState(false);
   const [difficulty, setDifficulty] = useState('easy');
   const [loading, setLoading] = useState(false);
+  const [score, setScore] = useState(0); // Håller koll på rätt gissningar
+  const [questionCount, setQuestionCount] = useState(0); // Håller koll på antal frågor
+  const [gameStarted, setGameStarted] = useState(false); // Styr om startsida visas
+
 
   const RAPIDAPI_KEY = 'e74f8ee797msh19e5d70d033f4e5p1af591jsn5ab4a61e0dfd';
 
@@ -74,6 +78,26 @@ const App = () => {
     setShowForm(true);
   };
 
+  if (!gameStarted) {
+  return (
+    <div className="container py-5 text-center">
+      <h1 className="display-4">🌍 Geografi-spelet</h1>
+      <p className="lead mt-3 mb-4">
+        Testa dina geografikunskaper – gissa land, se flaggor, kartor och samla poäng!
+      </p>
+      <button
+        className="btn btn-primary btn-lg px-5 py-3"
+        onClick={() => {
+          setGameStarted(true);
+          fetchCity(); 
+        }}
+      >
+        Starta spelet
+      </button>
+    </div>
+  );
+}
+
   return (
     <div className="container py-4">
       <h1 className="mb-4">Guess the Country!</h1>
@@ -92,6 +116,8 @@ const App = () => {
         </select>
       </div>
 
+      
+ 
       {city && (
         <div className="card p-3 shadow-sm">
           <h3>{city.name}</h3>
