@@ -14,6 +14,8 @@ const App = () => {
   const [score, setScore] = useState(0); // Håller koll på rätt gissningar
   const [questionCount, setQuestionCount] = useState(0); // Håller koll på antal frågor
   const [gameStarted, setGameStarted] = useState(false); // Styr om startsida visas
+  const [countryInfo, setCountryInfo] = useState(null); // Fakta om landet
+
 
 
   const RAPIDAPI_KEY = 'e74f8ee797msh19e5d70d033f4e5p1af591jsn5ab4a61e0dfd';
@@ -41,6 +43,7 @@ const App = () => {
         params.offset = Math.floor(Math.random() * 10000);
       }
 
+
       const res = await axios.get('https://wft-geo-db.p.rapidapi.com/v1/geo/cities', {
         headers: {
           'X-RapidAPI-Key': RAPIDAPI_KEY,
@@ -49,11 +52,21 @@ const App = () => {
         params,
       });
 
+      const fetchCountryInfo = async (countryCode) => {
+  try {
+    const res = await axios.get(`https://restcountries.com/v3.1/alpha/${countryCode}`);
+    setCountryInfo(res.data[0]);
+  } catch (error) {
+    console.error('Error fetching country info:', error);
+    setCountryInfo(null);
+  }
+};
       let cities = res.data.data;
 
       const chosenCity = cities[Math.floor(Math.random() * cities.length)];
 
       setCity(chosenCity);
+      fetchCountryInfo(chosenCity.countryCode);
       setResult('');
       setGuess('');
       setShowForm(false);
@@ -124,6 +137,26 @@ const App = () => {
           <p>
             <strong>Population:</strong> {city.population ? city.population.toLocaleString() : 'Unknown'}
           </p>
+{countryInfo && (
+  <div className="mt-3">
+    <h5>Country info:</h5>
+    <ul>
+      <li><strong>Region:</strong> {countryInfo.region}</li>
+      <li><strong>Subregion:</strong> {countryInfo.subregion}</li>
+
+      {(difficulty === 'easy' || difficulty === 'medium') && (
+        <>
+          <li><strong>Capital:</strong> {countryInfo.capital?.[0]}</li>
+          <li><strong>Languagge:</strong> {Object.values(countryInfo.languages || {}).join(', ')}</li>
+        </>
+      )}
+
+      {difficulty === 'easy' && (
+        <li><strong>Currency:</strong> {Object.values(countryInfo.currencies || {}).map(c => c.name).join(', ')}</li>
+      )}
+    </ul>
+  </div>
+)}
 
           {/* Visa flagga */}
           {city.countryCode && (
