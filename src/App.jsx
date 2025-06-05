@@ -16,6 +16,12 @@ const App = () => {
   const [gameStarted, setGameStarted] = useState(false); // Styr om startsida visas
   const [countryInfo, setCountryInfo] = useState(null); // Fakta om landet
   const [clue, setClue] = useState(null); // Håller ledtråd till spelaren
+  const [visitPreferences, setVisitPreferences] = useState([]); // Sparar svar på "vill du besöka?"
+  const [gameOver, setGameOver] = useState(false);
+  const [usedClue, setUsedClue] = useState(false);
+
+
+
 
 
 
@@ -69,7 +75,8 @@ const App = () => {
 
       setCity(chosenCity);
       fetchCountryInfo(chosenCity.countryCode);
-      setClue(null); 
+      setClue(null);
+      setUsedClue(false); 
       setResult('');
       setGuess('');
       setShowForm(false);
@@ -84,20 +91,49 @@ const App = () => {
     fetchCity();
   }, [difficulty]);
 
-  const handleGuess = () => {
-    if (!guess) return;
+const handleGuess = () => {
+  if (!guess || !countryInfo) return;
 
-    const correctAnswer = city.country;
-    const isCorrect = guess.trim().toLowerCase() === correctAnswer.toLowerCase();
+  const normalizedGuess = guess.trim().toLowerCase();
 
-    setResult(isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${correctAnswer}`);
-    setShowForm(true);
-  };const handleClue = () => {
+  // Vi kollar flera namn på landet: officiellt, vanligt, alternativa stavningar
+  const countryNames = [
+    countryInfo.name.common?.toLowerCase(),
+    countryInfo.name.official?.toLowerCase(),
+    ...(countryInfo.altSpellings || []).map(s => s.toLowerCase())
+  ];
+
+  const isCorrect = countryNames.some(name => name === normalizedGuess);
+
+  setResult(isCorrect ? '✅ Correct!' : `❌ Wrong! Correct answer: ${countryInfo.name.common}`);
+  setShowForm(true);
+
+  // Poängberäkning: 2p utan ledtråd, 1p med
+  const pointsEarned = isCorrect ? (usedClue ? 1 : 2) : 0;
+  setScore((prev) => prev + pointsEarned);
+  setQuestionCount((prev) => prev + 1);
+
+  // ✅ LÄGG IN DETTA EXAKT HÄR:
+  if (questionCount + 1 >= 10) {
+    setGameOver(true); // spelet slutar → slutskärm visas
+    saveScore(difficulty, score + pointsEarned); // spara slutresultatet
+  }
+};
+const handleClue = () => {
   if (!countryInfo) return;
 
-  // ger clues till splaren
   const clueText = `Första bokstaven i landets namn: ${countryInfo.name.common.charAt(0)}`;
   setClue(clueText);
+  setUsedClue(true); // ← viktigt för poängsystemet
+};
+
+
+const handleVisitAnswer = (answer) => {
+  setVisitPreferences(prev => [
+    ...prev,
+    { city: city.name, country: city.country, answer }
+  ]);
+  fetchCity(); // direkt till nästa fråga efter svar
 };
 
 
@@ -121,9 +157,52 @@ const App = () => {
   );
 }
 
+if (gameOver) {
+  return (
+    <div className="container py-5 text-center">
+      <h1>🎉 Spelet är klart!</h1>
+      <p className="lead">Du fick <strong>{score}</strong> poäng av 20 möjliga på <strong>{difficulty}</strong>-nivån.</p>
+
+      {visitPreferences.length > 0 && (
+        <>
+          <h5 className="mt-4">Dina svar på: Would you like to visit...?</h5>
+          <ul className="list-unstyled d-inline-block text-start">
+            {visitPreferences.map((pref, index) => (
+              <li key={index}>
+                {pref.city}, {pref.country}: <strong>{pref.answer === 'yes' ? '✅ Ja' : '❌ Nej'}</strong>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      <button
+        className="btn btn-success mt-4"
+        onClick={() => {
+          setGameStarted(false);
+          setScore(0);
+          setQuestionCount(0);
+          setGameOver(false);
+          setCity(null);
+          setResult('');
+          setGuess('');
+          setShowForm(false);
+          setUsedClue(false);
+          setClue(null);
+          setVisitPreferences([]);
+        }}
+      >
+        🔁 Till startsidan
+      </button>
+    </div>
+  );
+}
+
   return (
     <div className="container py-4">
       <h1 className="mb-4">Guess the Country!</h1>
+      <p className="text-muted mb-3">Fråga {questionCount + 1} av 10 | Poäng: {score}</p>
+
 
       <div className="mb-3 w-auto">
         <label className="form-label">Difficulty:</label>
@@ -224,46 +303,20 @@ const App = () => {
           {clue && <p className="mt-2 text-info">{clue}</p>}
 
 
-          {showForm && (
-            <div className="mt-4">
-              <h5>Personal question</h5>
-              <p>Would you like to live in {city.name}?</p>
-              <button
-                className="btn btn-primary fw-bold d-flex align-items-center gap-2 px-4 py-2 shadow-sm"
-                onClick={fetchCity}
-                style={{
-                  borderRadius: '30px',
-                  fontSize: '1.1rem',
-                  transition: 'transform 0.2s ease',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
-                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
-              >
-                Next city
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  fill="currentColor"
-                  className="bi bi-arrow-right-circle"
-                  viewBox="0 0 16 16"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zm0-1A6 6 0 1 1 8 2a6 6 0 0 1 0 12z"
-                  />
-                  <path
-                    fillRule="evenodd"
-                    d="M8.5 11a.5.5 0 0 1 0-1H10V7.5a.5.5 0 0 1 1 0v3a.5.5 0 0 1-.5.5H8.5z"
-                  />
-                  <path
-                    fillRule="evenodd"
-                    d="M10.354 7.646a.5.5 0 0 0-.708.708L11.293 9.5H7.5a.5.5 0 0 0 0 1h3.793l-1.647 1.646a.5.5 0 0 0 .708.708l2.5-2.5a.5.5 0 0 0 0-.708l-2.5-2.5z"
-                  />
-                </svg>
-              </button>
-            </div>
-          )}
+{showForm && (
+  <div className="mt-4">
+    <p className="fw-semibold">Would you like to visit {city.name}?</p>
+    <div className="d-flex gap-3 justify-content-center">
+      <button className="btn btn-outline-success px-4" onClick={() => handleVisitAnswer('yes')}>
+        Yes
+      </button>
+      <button className="btn btn-outline-danger px-4" onClick={() => handleVisitAnswer('no')}>
+        No
+      </button>
+    </div>
+  </div>
+)}
+
         </div>
       )}
     </div>
