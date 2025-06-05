@@ -72,6 +72,13 @@ const App = () => {
       let cities = res.data.data;
 
       const chosenCity = cities[Math.floor(Math.random() * cities.length)];
+      const blockedCountries = ['CN', 'IN'];
+      if (blockedCountries.includes(chosenCity.countryCode)) {
+      // Hämta ny stad om det är Kina eller Indien. De vissas för ofta och det förstör spelet
+      fetchCity();
+      return;
+    }
+
 
       setCity(chosenCity);
       fetchCountryInfo(chosenCity.countryCode);
@@ -271,21 +278,29 @@ if (gameOver) {
           )}
 
           <div className="mt-3">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Type the country name"
-              value={guess}
-              onChange={(e) => setGuess(e.target.value)}
-              disabled={showForm}
-            />
-            <button
-              className="btn btn-success mt-2"
-              onClick={handleGuess}
-              disabled={showForm || !guess}
-            >
-              Guess
-            </button>
+            <form
+  onSubmit={(e) => {
+    e.preventDefault(); // förhindrar sida från att laddas om
+    handleGuess();      // anropa gissningsfunktionen
+  }}
+>
+  <input
+    type="text"
+    className="form-control"
+    placeholder="Type the country name"
+    value={guess}
+    onChange={(e) => setGuess(e.target.value)}
+    disabled={showForm}
+  />
+  <button
+    type="submit"
+    className="btn btn-success mt-2"
+    disabled={showForm || !guess}
+  >
+    Guess
+  </button>
+</form>
+
           </div>
 
 

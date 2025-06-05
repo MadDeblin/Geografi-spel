@@ -3,3 +3,52 @@ body {
   margin: 0;
   padding: 0;
 }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f5f7fa;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h3 {
+  color: #2c3e50;
+}
+
+.card {
+  border-radius: 12px;
+  background: white;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+input.form-control {
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 16px;
+}
+
+button.btn {
+  border-radius: 30px;
+  font-weight: 600;
+  transition: transform 0.15s ease, background-color 0.2s ease;
+}
+
+button.btn:hover {
+  transform: scale(1.03);
+}
+
+button.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+select.form-select {
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 15px;
+}
+
+.text-info {
+  font-style: italic;
+  color: #0d6efd;
+}
