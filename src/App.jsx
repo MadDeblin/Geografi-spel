@@ -26,7 +26,7 @@ const App = () => {
 
 
 
-  const RAPIDAPI_KEY = 'e74f8ee797msh19e5d70d033f4e5p1af591jsn5ab4a61e0dfd';
+  const RAPIDAPI_KEY = 'c276a94aaamsh8e8abe806dd5a74p1507bfjsn698968c9252d';
 
   const fetchCity = async () => {
     try {
